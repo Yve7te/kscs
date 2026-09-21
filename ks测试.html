@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Kluckhohn‑Strodtbeck价值取向测评</title>
+<style>
+*{box-sizing:border-box;font-family:"Microsoft Yahei",sans-serif;margin:0;padding:0;}
+body{background:#f0f4f8;color:#2d3748;padding:24px;min-height:100vh;display:flex;justify-content:center;align-items:center;}
+.wrap{width:100%;max-width:680px;}
+.card{background:#ffffff;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,0.08);padding:36px;}
+.warning{color:#c53030;font-size:14px;margin-bottom:20px;line-height:1.6;}
+.progress-bar{width:100%;height:8px;background:#e2e8f0;border-radius:4px;margin-bottom:28px;overflow:hidden;}
+.progress-fill{height:100%;background:#3182ce;transition:width 0.3s ease;}
+.q-index{font-size:14px;color:#718096;margin-bottom:12px;}
+.question-title{font-size:18px;font-weight:600;line-height:1.6;margin-bottom:24px;}
+.option-item{margin:14px 0;}
+.option-item label{display:block;padding:14px 16px;border:1px solid #cbd5e0;border-radius:10px;cursor:pointer;transition:0.2s;background:#fff;}
+.option-item label:hover{border-color:#3182ce;background:#f7fafc;}
+.option-item input{margin-right:10px;}
+.btn-group{margin-top:32px;display:flex;gap:12px;justify-content:space-between;}
+button{padding:11px 24px;border-radius:10px;font-size:16px;border:none;cursor:pointer;transition:0.2s;}
+.btn-prev{background:#e2e8f0;color:#2d3748;}
+.btn-prev:disabled{opacity:0.4;cursor:not-allowed;}
+.btn-next,.btn-submit{background:#3182ce;color:#fff;}
+.btn-next:hover,.btn-submit:hover{background:#2b6cb0;}
+#result-area{line-height:1.8;font-size:16px;}
+.dim-block{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid #edf2f7;}
+.dim-name{font-weight:bold;color:#2b6cb0;font-size:17px;margin-bottom:4px;}
+.dim-result{color:#2d3748;}
+.hidden{display:none !important;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h2 style="margin-bottom:12px;">Kluckhohn‑Strodtbeck 文化价值取向测评</h2>
+    <div class="warning">⚠️声明：本工具仅课堂学习使用，结果代表个人价值观偏好，不等于国家/民族人格，请勿做刻板解读。</div>
+
+    <!-- 进度条 -->
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill" style="width:0%"></div>
+    </div>
+
+    <!-- 答题区域 -->
+    <div id="quiz-area">
+      <div class="q-index" id="qIndex"></div>
+      <div class="question-title" id="qTitle"></div>
+      <div id="optWrap"></div>
+      <div class="btn-group">
+        <button class="btn-prev" id="btnPrev" disabled>上一题</button>
+        <button class="btn-next" id="btnNext">下一题</button>
+        <button class="btn-submit hidden" id="btnSubmit">提交查看结果</button>
+      </div>
+    </div>
+
+    <!-- 结果区域 -->
+    <div id="result-area" class="hidden">
+      <h3 style="margin-bottom:22px;">📋你的测评报告</h3>
+      <div id="resultContent"></div>
+      <button onclick="restartTest()" style="margin-top:24px;background:#3182ce;color:#fff;">重新测试</button>
+    </div>
+  </div>
+</div>
+
+<script>
+//题库
+const dimensions = [
+  {
+    name:"Human‑Nature 人性观",
+    map:{A:"本善",B:"善恶混合",C:"本恶"},
+    questions:[
+      {q:"Q1. 你认为人刚出生本性如何？",a:"A. 人本性是善良，可以后天维持善心",b:"B. 人的本性善恶混杂，受环境影响",c:"C. 人的天性偏向自私邪恶，需要约束管教"},
+      {q:"Q2. 如果朋友犯错误，你更倾向认为：",a:"A. 他内心是好的，只是一时做错",b:"B. 好人也会犯错，坏人也会行善",c:"C. 本性很难改变，犯错说明内心就有问题"},
+      {q:"Q3. 你相信大部分陌生人本质？",a:"A. 大多本心良善，可以信任",b:"B. 有好有坏，需要接触才知道",c:"C. 大多优先利己，要保持防备"}
+    ]
+  },
+  {
+    name:"Man‑Nature‑Relationship 人与自然关系",
+    map:{A:"臣服自然",B:"人与自然和谐",C:"掌控自然"},
+    questions:[
+      {q:"Q4. 面对自然灾害，你的看法是？",a:"A. 人类应当顺从接受自然的安排",b:"B. 人类应当和大自然和谐共处，互相平衡",c:"C. 人类应该努力改造、控制自然来满足人的需求"},
+      {q:"Q5. 在看待环境问题上，你认同：",a:"A. 人类不要试图改变大自然的运行",b:"B. 人类发展要兼顾保护自然环境",c:"C. 科技进步就是用来征服利用自然资源"},
+      {q:"Q6. 对于天气、命运这类事情：",a:"A. 很多事情人力难以抗衡，只能接受",b:"B. 尽人事同时尊重客观自然规律",c:"C. 我们可以靠手段改变不利处境"}
+    ]
+  },
+  {
+    name:"Sense‑of‑Time 时间取向",
+    map:{A:"Past 过去取向",B:"Present 现在取向",C:"Future 未来取向"},
+    questions:[
+      {q:"Q7. 做决定时，你更看重？",a:"A. 传统、前人经验与历史惯例",b:"B. 当前现实感受，眼前实际情况",c:"C. 未来目标，长远回报"},
+      {q:"Q8. 空闲时间你更喜欢？",a:"A. 回顾过去，怀念旧时光、老传统",b:"B. 享受当下，活在此时此刻",c:"C. 规划未来，为以后做准备"},
+      {q:"Q9. 评价一件事是否值得，优先看：",a:"A. 是否符合先辈流传下来的做法",b:"B. 现在做这件事开不开心，当下收益",c:"C. 这件事对未来发展有没有帮助"}
+    ]
+  },
+  {
+    name:"Activity 活动取向",
+    map:{A:"Being",B:"Becoming",C:"Doing"},
+    questions:[
+      {q:"Q10. 什么样的生活更理想？",a:"A. 感受当下情绪，体验生活本身",b:"B. 不断学习，完善自我，挖掘自己潜能",c:"C. 做出看得见的成绩，完成具体成就"},
+      {q:"Q11. 评价一个人优秀与否优先看：",a:"A. 他的真实感受、情绪状态",b:"B. 他是否一直在成长进步",c:"C. 他取得的实际成果、业绩"},
+      {q:"Q12. 休息的时候，你更愿意：",a:"A. 放空，单纯享受此刻状态",b:"B. 思考自我，反思、提升自己",c:"C. 做点有产出、有意义的事情"}
+    ]
+  },
+  {
+    name:"Social‑Relationship 社会关系",
+    map:{A:"Lineal 等级取向",B:"Collateral 群体取向",C:"Individual 个人取向"},
+    questions:[
+      {q:"Q13. 在小组合作中你更认可：",a:"A. 尊重层级，听从资历更高者的安排",b:"B. 重视整个集体，大家互相扶持合作",c:"C. 尊重每个人独立想法，优先个人选择"},
+      {q:"Q14. 遇到冲突，你的第一选择：",a:"A. 遵从长辈、上级的意见来解决",b:"B. 维护团体和睦，照顾集体关系",c:"C. 坚持自己观点，维护个人权益"},
+      {q:"Q15. 关于责任，你认为：",a:"A. 每个人有自己固定角色，要履行等级赋予义务",b:"B. 对群体中的其他人负有相互的责任",c:"C. 每个人首先为自己负责"}
+    ]
+  },
+  {
+    name:"Relation‑to‑Space 空间取向",
+    map:{A:"公共",B:"混合",C:"私密"},
+    questions:[
+      {q:"Q16. 对待个人物品与个人信息：",a:"A. 尽量公开，大家可以共享",b:"B. 亲近的人可以分享，外人需要界限",c:"C. 属于我的就是我的，需要严格隐私边界"},
+      {q:"Q17. 开会交流场景，你偏好：",a:"A. 开放公开环境，信息全部公开",b:"B. 根据关系远近决定哪些信息分享",c:"C. 重要想法只在私密小范围沟通"},
+      {q:"Q18. 宿舍 / 办公空间理念：",a:"A. 空间属于大家，不用明确私人边界",b:"B. 部分区域公共，部分保留私人空间",c:"C. 需要清晰独立私人空间，不希望被打扰"}
+    ]
+  }
+];
+
+//扁平化全部题目列表
+let allQuestions = [];
+dimensions.forEach(d=>{
+  d.questions.forEach(q=>{
+    allQuestions.push({...q,dim:d});
+  })
+});
+
+let currentIndex = 0;
+let answers = Array(allQuestions.length).fill(null);
+
+const qIndexEl = document.getElementById("qIndex");
+const qTitleEl = document.getElementById("qTitle");
+const optWrapEl = document.getElementById("optWrap");
+const btnPrev = document.getElementById("btnPrev");
+const btnNext = document.getElementById("btnNext");
+const btnSubmit = document.getElementById("btnSubmit");
+const progressFill = document.getElementById("progressFill");
+const quizArea = document.getElementById("quiz-area");
+const resultArea = document.getElementById("result-area");
+const resultContent = document.getElementById("resultContent");
+
+function renderQuestion(){
+  const item = allQuestions[currentIndex];
+  qIndexEl.innerText = `第 ${currentIndex+1} / ${allQuestions.length} 题`;
+  qTitleEl.innerText = item.q;
+
+  optWrapEl.innerHTML = `
+  <div class="option-item">
+    <label><input type="radio" name="curQ" value="A" ${answers[currentIndex]==="A"?"checked":""}> ${item.a}</label>
+  </div>
+  <div class="option-item">
+    <label><input type="radio" name="curQ" value="B" ${answers[currentIndex]==="B"?"checked":""}> ${item.b}</label>
+  </div>
+  <div class="option-item">
+    <label><input type="radio" name="curQ" value="C" ${answers[currentIndex]==="C"?"checked":""}> ${item.c}</label>
+  </div>
+  `;
+
+  //更新进度
+  const pct = ((currentIndex+1)/allQuestions.length)*100;
+  progressFill.style.width = pct+"%";
+
+  btnPrev.disabled = currentIndex===0;
+
+  if(currentIndex === allQuestions.length-1){
+    btnNext.classList.add("hidden");
+    btnSubmit.classList.remove("hidden");
+  }else{
+    btnNext.classList.remove("hidden");
+    btnSubmit.classList.add("hidden");
+  }
+}
+
+//保存当前题目的选择
+function saveCurrentAnswer(){
+  const sel = document.querySelector('input[name="curQ"]:checked');
+  if(sel){
+    answers[currentIndex] = sel.value;
+  }
+}
+
+btnNext.onclick = function(){
+  saveCurrentAnswer();
+  if(!answers[currentIndex]){
+    alert("请选择一个选项！");
+    return;
+  }
+  currentIndex++;
+  renderQuestion();
+};
+
+btnPrev.onclick = function(){
+  saveCurrentAnswer();
+  currentIndex--;
+  renderQuestion();
+};
+
+btnSubmit.onclick = function(){
+  saveCurrentAnswer();
+  //校验全部答完
+  for(let i=0;i<answers.length;i++){
+    if(!answers[i]){
+      alert(`还有未完成的题目，请回到第${i+1}题作答。`);
+      currentIndex = i;
+      renderQuestion();
+      return;
+    }
+  }
+  computeResult();
+};
+
+//计分：只输出最终取向，隐藏分数
+function computeResult(){
+  let offset = 0;
+  let html = "";
+  for(const dim of dimensions){
+    let score = {A:0,B:0,C:0};
+    for(let i=0;i<3;i++){
+      const ans = answers[offset+i];
+      score[ans] +=1;
+    }
+    offset +=3;
+    const maxScore = Math.max(score.A,score.B,score.C);
+    const winners = [];
+    if(score.A === maxScore) winners.push(dim.map.A);
+    if(score.B === maxScore) winners.push(dim.map.B);
+    if(score.C === maxScore) winners.push(dim.map.C);
+
+    html += `<div class="dim-block">
+      <div class="dim-name">${dim.name}</div>
+      <div class="dim-result">你的取向：${winners.join(" / ")}</div>
+    </div>`;
+  }
+  resultContent.innerHTML = html;
+  quizArea.classList.add("hidden");
+  resultArea.classList.remove("hidden");
+}
+
+function restartTest(){
+  currentIndex = 0;
+  answers = Array(allQuestions.length).fill(null);
+  quizArea.classList.remove("hidden");
+  resultArea.classList.add("hidden");
+  renderQuestion();
+}
+
+window.onload = renderQuestion;
+</script>
+</body>
+</html>
