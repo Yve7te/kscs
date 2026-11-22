@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>一年级英语名词小闯关✨</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:"Microsoft Yahei","Comic Sans MS",sans-serif}
+body{background:linear-gradient(135deg,#ffe6f2 0%,#e6f3ff 50%,#fff7d6 100%);padding:16px;min-height:100vh}
+.container{max-width:600px;margin:0 auto}
+.title{text-align:center;font-size:26px;color:#ff6699;margin-bottom:12px;font-weight:bold;text-shadow:1px 1px 0 #fff}
+.score-info{text-align:center;font-size:20px;color:#cc4477;margin-bottom:16px;background:#fff;border-radius:20px;padding:8px 16px;display:inline-block;box-shadow:0 4px 12px #ffd6e7}
+.score-wrap{text-align:center;margin-bottom:12px}
+.question-box{background:#ffffff;border-radius:20px;padding:20px;box-shadow:0 4px 12px #ffd6e7;margin-bottom:16px;display:none}
+.question-box.active{display:block;animation:pop 0.3s ease-out}
+.q-emoji{font-size:40px;text-align:center;margin-bottom:8px}
+.q-text{font-size:22px;color:#444;margin-bottom:16px;line-height:1.6;text-align:center}
+.option{display:block;width:100%;padding:14px;border:none;border-radius:14px;margin:10px 0;font-size:20px;background:#ffe6f2;color:#772255;cursor:pointer;transition:0.2s;font-weight:bold}
+.option:hover{background:#ffb3d9;transform:scale(1.02)}
+.option.right{background:#85e89d;color:#145220;animation:pop 0.3s}
+.option.wrong{background:#ff9999;color:#660000;animation:shake 0.4s}
+.tip{text-align:center;font-size:18px;font-weight:bold;margin-top:10px;min-height:26px}
+.tip.good{color:#2e9e4f}
+.tip.bad{color:#d94343}
+.btn-next{margin-top:12px;padding:12px 24px;border:none;border-radius:12px;background:#ff88bb;color:white;font-size:19px;display:none;cursor:pointer;font-weight:bold;box-shadow:0 4px 10px #ffb3d9}
+.btn-next:hover{transform:scale(1.05)}
+.btn-wrap{text-align:center}
+.modal{position:fixed;inset:0;background:rgba(255,182,193,0.35);display:none;align-items:center;justify-content:center;padding:16px;z-index:999;backdrop-filter:blur(3px)}
+.modal.show{display:flex}
+.modal-card{background:#fff8fc;border-radius:28px;padding:30px 24px;text-align:center;max-width:480px;width:100%;box-shadow:0 10px 30px rgba(255,120,170,0.35);position:relative;overflow:hidden;animation:pop 0.4s ease-out}
+.royal{display:flex;justify-content:center;align-items:center;gap:24px;margin:10px 0 16px}
+.royal .figure{font-size:72px;animation:bounce 1.4s ease-in-out infinite;filter:drop-shadow(0 4px 6px rgba(255,150,180,0.4))}
+.royal .princess{animation-delay:0s}
+.royal .prince{animation-delay:0.35s}
+.star{position:absolute;width:12px;height:12px;background:#ffdd77;border-radius:50%;box-shadow:0 0 8px #ffdd77;animation:twinkle 2s infinite}
+.flower{position:absolute;font-size:22px;animation:float 3s infinite ease-in-out}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+@keyframes twinkle{0%,100%{opacity:0.3;transform:scale(0.7)}50%{opacity:1;transform:scale(1.1)}}
+@keyframes float{0%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-18px) rotate(10deg)}100%{transform:translateY(0) rotate(0deg)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+@keyframes pop{0%{transform:scale(0.8);opacity:0}100%{transform:scale(1);opacity:1}}
+.modal h2{color:#ff5588;font-size:28px;margin-bottom:10px}
+.modal p{font-size:20px;color:#666;margin-bottom:20px;line-height:1.6}
+.btn-restart{padding:12px 28px;border:none;border-radius:14px;background:linear-gradient(135deg,#ff77aa,#ff99cc);color:white;font-size:20px;cursor:pointer;font-weight:bold;box-shadow:0 4px 12px #ffb3d9}
+.btn-restart:hover{transform:scale(1.05)}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="title">🌟 名词单复数小闯关 🌟</div>
+<div class="score-wrap"><span class="score-info">得分：<span id="score">0</span> / <span id="totalNum"></span></span></div>
+<div id="wrap"></div>
+</div>
+
+<div class="modal" id="winModal">
+<div class="modal-card" id="modalCard">
+<div class="royal">
+  <span class="figure princess">👸</span>
+  <span class="figure prince">🤴</span>
+</div>
+<h2>太棒啦！🎉</h2>
+<p id="resultText">你全部完成挑战！<br>公主和王子都来为你鼓掌啦🥳</p>
+<button class="btn-restart" onclick="restartGame()">再来一次</button>
+</div>
+</div>
+
+<script>
+// ===== 内置音效 =====
+let audioCtx = null;
+function initAudio(){
+  if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if(audioCtx.state === 'suspended') audioCtx.resume();
+}
+function playRight(){
+  initAudio();
+  const notes = [523, 784];
+  notes.forEach((f, i)=>{
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = 'sine';
+    osc.frequency.value = f;
+    const t = audioCtx.currentTime + i*0.12;
+    gain.gain.setValueAtTime(0.25, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t+0.25);
+    osc.start(t); osc.stop(t+0.25);
+  });
+}
+function playWrong(){
+  initAudio();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+  osc.frequency.setValueAtTime(180, audioCtx.currentTime+0.12);
+  gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+0.3);
+  osc.start(); osc.stop(audioCtx.currentTime+0.3);
+}
+function playWin(){
+  initAudio();
+  const notes = [523,659,784,1047];
+  notes.forEach((f, i)=>{
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = 'sine';
+    osc.frequency.value = f;
+    const t = audioCtx.currentTime + i*0.18;
+    gain.gain.setValueAtTime(0.22, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t+0.35);
+    osc.start(t); osc.stop(t+0.35);
+  });
+}
+
+// ===== 题库 =====
+// 可数名词复数（10道，覆盖5种规则，每种2题）
+// 规则：直接+s / +es / 去y改i+es / f(fe)改v+es / 特殊变形
+// 不可数名词（5道）：题目形式同样为"xx的复数是？"，正确答案为原型，
+// 混淆项为两个错误加s形式 + 一个干扰加s形式
+const rawQuestions = [
+  // ① 直接 +s
+  {q:"apple 的复数是？", emoji:"🍎", opts:["apples","applees","apple"], ans:"apples"},
+  {q:"book 的复数是？", emoji:"📖", opts:["books","bookes","book"], ans:"books"},
+  // ② +es（s/x 结尾）
+  {q:"bus 的复数是？", emoji:"🚌", opts:["buses","bus","buss"], ans:"buses"},
+  {q:"box 的复数是？", emoji:"📦", opts:["boxes","boxs","box"], ans:"boxes"},
+  // ③ 去 y 改 i +es
+  {q:"baby 的复数是？", emoji:"👶", opts:["babies","babys","baby"], ans:"babies"},
+  {q:"family 的复数是？", emoji:"👨‍👩‍👧", opts:["families","familys","family"], ans:"families"},
+  // ④ f/fe 改 v +es
+  {q:"knife 的复数是？", emoji:"🔪", opts:["knives","knifes","knife"], ans:"knives"},
+  {q:"leaf 的复数是？", emoji:"🍃", opts:["leaves","leafs","leaf"], ans:"leaves"},
+  // ⑤ 特殊变形
+  {q:"man 的复数是？", emoji:"👨", opts:["men","mans","man"], ans:"men"},
+  {q:"child 的复数是？", emoji:"🧒", opts:["children","childs","child"], ans:"children"},
+  // 不可数名词（5道，不可数没有复数，仍用原型）
+  {q:"milk 的复数是？", emoji:"🥛", opts:["milk","milks","milkes"], ans:"milk"},
+  {q:"water 的复数是？", emoji:"💧", opts:["water","waters","wateres"], ans:"water"},
+  {q:"bread 的复数是？", emoji:"🍞", opts:["bread","breads","breades"], ans:"bread"},
+  {q:"rice 的复数是？", emoji:"🍚", opts:["rice","rices","ricees"], ans:"rice"},
+  {q:"juice 的复数是？", emoji:"🧃", opts:["juice","juices","juicees"], ans:"juice"}
+];
+
+// 打乱题目顺序
+let questionList = [...rawQuestions].sort(()=>Math.random()-0.5);
+
+let current = 0;
+let score = 0;
+const wrap = document.getElementById("wrap");
+const scoreDom = document.getElementById("score");
+const totalDom = document.getElementById("totalNum");
+const modal = document.getElementById("winModal");
+totalDom.innerText = questionList.length;
+
+function render(){
+  wrap.innerHTML = "";
+  const item = questionList[current];
+  const box = document.createElement("div");
+  box.className = "question-box active";
+  const shuffled = [...item.opts].sort(()=>Math.random()-0.5);
+  box.innerHTML = `
+    <div class="q-emoji">${item.emoji}</div>
+    <div class="q-text">第${current+1}题：${item.q}</div>
+    ${shuffled.map(o=>`<button class="option" data-ans="${o}">${o}</button>`).join("")}
+    <div class="tip" id="tip"></div>
+    <div class="btn-wrap"><button class="btn-next" id="nextBtn">下一题 →</button></div>
+  `;
+  wrap.appendChild(box);
+
+  const opts = box.querySelectorAll(".option");
+  const nextBtn = document.getElementById("nextBtn");
+  const tip = document.getElementById("tip");
+  let answered = false;
+
+  opts.forEach(btn=>{
+    btn.onclick = ()=>{
+      if(answered) return;
+      answered = true;
+      const pick = btn.dataset.ans;
+      if(pick === item.ans){
+        btn.classList.add("right");
+        playRight();
+        score++;
+        scoreDom.innerText = score;
+        tip.innerText = "✅ 太棒啦，答对咯！";
+        tip.className = "tip good";
+      }else{
+        btn.classList.add("wrong");
+        playWrong();
+        tip.innerText = "❌ 不对哦，正确答案：" + item.ans;
+        tip.className = "tip bad";
+        opts.forEach(b=>{ if(b.dataset.ans === item.ans) b.classList.add("right"); });
+      }
+      nextBtn.style.display = "inline-block";
+    };
+  });
+
+  nextBtn.onclick = ()=>{
+    current++;
+    if(current >= questionList.length){ showModal(); }
+    else{ render(); }
+  };
+}
+
+function showModal(){
+  playWin();
+  modal.classList.add("show");
+  const card = document.getElementById("modalCard");
+  card.querySelectorAll(".star,.flower").forEach(el=>el.remove());
+  for(let i=0;i<12;i++){
+    const s = document.createElement("div");
+    s.className = "star";
+    s.style.left = Math.random()*90 + "%";
+    s.style.top = Math.random()*90 + "%";
+    card.appendChild(s);
+  }
+  const flowers = ["🌸","🌷","💐","✨","🦋","🎀"];
+  for(let i=0;i<6;i++){
+    const f = document.createElement("div");
+    f.className = "flower";
+    f.innerText = flowers[Math.floor(Math.random()*flowers.length)];
+    f.style.left = Math.random()*85 + "%";
+    f.style.top = Math.random()*85 + "%";
+    card.appendChild(f);
+  }
+  let comment = "";
+  if(score >= 13) comment = "👸公主和🤴王子为你戴上小皇冠！名词掌握得超好！";
+  else if(score >= 10) comment = "👸公主和🤴王子夸你很棒！再练一点点就满分啦！";
+  else if(score >= 7) comment = "👸公主和🤴王子说你不错哦，再复习一下复数规则！";
+  else comment = "👸公主和🤴王子说没关系，我们再来闯关，多练就会啦！";
+  document.getElementById("resultText").innerHTML = `你的总分：${score} / ${questionList.length}<br>${comment}`;
+}
+
+function restartGame(){
+  current = 0;
+  score = 0;
+  scoreDom.innerText = 0;
+  modal.classList.remove("show");
+  questionList.sort(()=>Math.random()-0.5);
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
